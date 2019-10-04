@@ -21,8 +21,6 @@ def index():
 
         if user:  # and check_password(user.password, password) == True:
             login_user(user, remember=True)
-
-            print(current_user.username)
             return redirect(url_for('profile_test'))
 
         flash('Sorry, wrong combination of username and password!')
@@ -35,7 +33,7 @@ def index():
         user = User.query.filter_by(username=form.login.username.data).first()
 
         if not user:
-            new_user = User(username=username, password=password, first_name=first_name, last_name=last_name, is_active=False)
+            new_user = User(username=username, password=password, first_name=first_name, last_name=last_name)
             database.session.add(new_user)
             database.session.commit()
             return redirect(url_for('index'))
