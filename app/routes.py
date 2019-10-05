@@ -1,8 +1,9 @@
 from flask import render_template, flash, redirect, url_for, request
-from app import app, database, login
+from app import app, db, login
 from models import User
 from flask_login import login_user, login_required, current_user, logout_user
-from app.forms import IndexForm, PostForm, FriendsForm, ProfileForm, CommentsForm, LoginForm, RegisterForm
+from app.forms import IndexForm, PostForm, FriendsForm, ProfileForm, CommentsForm, ResetPasswordRequestForm, ResetPasswordForm, LoginForm, RegisterForm
+from app.email import send_password_reset_email
 from datetime import datetime
 import os
 # this file contains all the different routes, and the logic for communicating with the database
@@ -12,6 +13,7 @@ import os
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def index():
+    print("at login")
     form = IndexForm()
     loginForm = LoginForm()
     registerForm = RegisterForm()
@@ -19,23 +21,27 @@ def index():
         # user = query_db('SELECT * FROM Users WHERE username="{}";'.format(form.login.username.data), one=True)
         user = User.query.filter_by(username=form.login.username.data).first()
 
-        if user:  # and check_password(user.password, password) == True:
-            login_user(user, remember=True)
+        if user and user.check_password(form.login.password.data):  # and check_password(user.password, password) == True:
+            login_user(user, remember=loginForm.remember_me.data)
             return redirect(url_for('profile_test'))
 
         flash('Sorry, wrong combination of username and password!')
 
-    elif form.register.is_submitted() and form.register.submit.data:
-        first_name, last_name = form.register.first_name.data, form.register.last_name.data
-        username, password = form.register.username.data, form.register.password.data
+    elif form.register.validate_on_submit():
+    #elif form.register.is_submitted() and form.register.submit.data:
+        print("register form validated")
+        #first_name, last_name = form.register.first_name.data, form.register.last_name.data
+        #username = form.register.username.data
         #  query_db('INSERT INTO Users (username, first_name, last_name, password, is_active) VALUES("{}", "{}", "{}", "{}",0);'.format(
         #    username, firstname, lastname, password))
-        user = User.query.filter_by(username=form.login.username.data).first()
+        user = User.query.filter_by(username=form.register.username.data).first()
 
         if not user:
-            new_user = User(username=username, password=password, first_name=first_name, last_name=last_name)
-            database.session.add(new_user)
-            database.session.commit()
+            new_user = User(username=form.register.username.data, email=form.register.email.data, first_name=form.register.first_name.data, last_name=form.register.last_name.data)
+            new_user.set_password(form.register.password.data)
+            db.session.add(new_user)
+            db.session.commit()
+            flash("Registration successful!")
             return redirect(url_for('index'))
         else:
             flash('Username taken!')
@@ -120,3 +126,34 @@ def logout():
     logout_user()
     flash("You are now logged out")
     return render_template('index.html', title='Welcome', form=form)
+
+@app.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    print("linje133")
+    #if current_user.is_authenticated:
+    #    return redirect(url_for('profile_test'))#Dette må endre til Profile.
+    form = ResetPasswordRequestForm()
+    print("linje137")
+    if form.validate_on_submit():
+        print("linje139")
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            send_password_reset_email(user)
+        flash('Check your mail for further instructions.')
+        return redirect(url_for('index'))
+    return render_template('reset_password_request.html', title='Reset Password', form=form)
+                           
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    #if current_user.is_authenticated:
+    #    return redirect(url_for('profile_test'))#Denne må endre til profile.
+    user = User.verify_reset_password_token(token)
+    if not user:
+        return redirect(url_for('index'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Your password has been reset.')
+        return redirect(url_for('index'))
+    return render_template('reset_password.html', form=form)

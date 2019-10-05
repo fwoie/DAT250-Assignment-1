@@ -1,5 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, FormField, TextAreaField, FileField
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
+from models import User
 from wtforms.fields.html5 import DateField
 
 # defines all forms in the application, these will be instantiated by the template,
@@ -16,18 +18,27 @@ class LoginForm(FlaskForm):
 
 
 class RegisterForm(FlaskForm):
-    first_name = StringField('First Name', render_kw={'placeholder': 'First Name'})
-    last_name = StringField('Last Name', render_kw={'placeholder': 'Last Name'})
-    username = StringField('Username', render_kw={'placeholder': 'Username'})
-    password = PasswordField('Password', render_kw={'placeholder': 'Password'})
-    confirm_password = PasswordField('Confirm Password', render_kw={'placeholder': 'Confirm Password'})
+    first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'First Name'})
+    last_name = StringField('Last Name', validators=[DataRequired()], render_kw={'placeholder': 'Last Name'})
+    username = StringField('Username', validators=[DataRequired()], render_kw={'placeholder': 'Username'})
+    email = StringField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'Email'})
+    password = PasswordField('Password', validators=[DataRequired()],  render_kw={'placeholder': 'Password'})
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')], render_kw={'placeholder': 'Confirm Password'})
     submit = SubmitField('Sign Up')
-
-
+    
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user is not None:
+            raise ValidationError('Please use a different username.')
+            
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError('Please use a different email address.')
+  
 class IndexForm(FlaskForm):
     login = FormField(LoginForm)
     register = FormField(RegisterForm)
-
 
 class PostForm(FlaskForm):
     content = TextAreaField('New Post', render_kw={'placeholder': 'What are you thinking about?'})
@@ -53,3 +64,13 @@ class ProfileForm(FlaskForm):
     nationality = StringField('Nationality', render_kw={'placeholder': 'Your nationality'})
     birthday = DateField('Birthday')
     submit = SubmitField('Update Profile')
+    
+class ResetPasswordRequestForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Request Password Reset')
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
+    password2 = PasswordField(
+        'Repeat Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Request Password Reset')

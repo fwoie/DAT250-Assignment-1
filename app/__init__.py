@@ -3,6 +3,8 @@ from config import Config
 from flask_bootstrap import Bootstrap
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_mail import Mail
 # import sqlite3
 import os
 
@@ -10,6 +12,7 @@ import os
 app = Flask(__name__)
 Bootstrap(app)
 app.config.from_object(Config)
+mail = Mail(app)
 
 
 # TODO: Handle login management better, maybe with flask_login?
@@ -17,10 +20,10 @@ login = LoginManager(app)
 login.init_app(app)
 login.login_view = 'login'
 
-database = SQLAlchemy(app)
-from models import User
-database.create_all()
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
+from models import User
 
 @login.user_loader
 def load_user(id):
