@@ -25,11 +25,11 @@ class User(UserMixin, database.Model):
     nationality = database.Column(database.String(30))
     birthday = database.Column(database.Date)
     comments = database.relationship('Comment', backref='user', lazy='dynamic')
-    friends = database.relationship('Follow', foreign_keys=[Friend.follower_id],
+    friends = database.relationship('Friend', foreign_keys=[Friend.follower_id],
                                     backref=database.backref('friend', lazy='joined'),
                                     lazy='dynamic', cascade='all, delete-orphan')
 
-    friend_of = database.relationship('Follow', foreign_keys=[Friend.followed_id],
+    friend_of = database.relationship('Friend', foreign_keys=[Friend.followed_id],
                                       backref=database.backref('friend_of', lazy='joined'),
                                       lazy='dynamic', cascade='all, delete-orphan')
 
