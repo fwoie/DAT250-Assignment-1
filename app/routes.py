@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request, g
 from app import app, db, login
-from models import User, Password
+from models import User, Password, Posts
 from flask_login import login_user, login_required, current_user, logout_user
 from app.forms import IndexForm, PostForm, FriendsForm, ProfileForm, CommentsForm, ResetPasswordRequestForm, ResetPasswordForm, LoginForm, RegisterForm
 from app.email import send_password_reset_email
@@ -13,7 +13,6 @@ import os
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def index():
-    print("at login")
     form = IndexForm()
     loginForm = LoginForm()
     registerForm = RegisterForm()
@@ -23,7 +22,7 @@ def index():
 
         if user and user.check_password(form.login.password.data):  # and check_password(user.password, password) == True:
             login_user(user, remember=loginForm.remember_me.data)
-            return redirect(url_for('profile_test'))
+            return redirect(url_for('profile', username = form.login.username.data))
 
         flash('Sorry, wrong combination of username and password!')
 
@@ -55,12 +54,15 @@ def index():
 
     return render_template('index.html', title='Welcome', form=form)
 
-"""
+
 # content stream page
 @app.route('/stream/<username>', methods=['GET', 'POST'])
+#@login_required
 def stream(username):
     form = PostForm()
-    user = query_db('SELECT * FROM Users WHERE username="{}";'.format(username), one=True)
+    
+    user = User.query.filter_by(username=username).first()
+    """
     if form.is_submitted():
         if form.image.data:
             path = os.path.join(app.config['UPLOAD_PATH'], form.image.data.filename)
@@ -71,6 +73,7 @@ def stream(username):
         return redirect(url_for('stream', username=username))
 
     posts = query_db('SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id=p.id) AS cc FROM Posts AS p JOIN Users AS u ON u.id=p.u_id WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id={0}) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id={0}) OR p.u_id={0} ORDER BY p.creation_time DESC;'.format(user['id']))
+    """
     return render_template('stream.html', title='Stream', username=username, form=form, posts=posts)
 
 
@@ -78,12 +81,15 @@ def stream(username):
 @app.route('/comments/<username>/<int:p_id>', methods=['GET', 'POST'])
 def comments(username, p_id):
     form = CommentsForm()
+    """
     if form.is_submitted():
         user = query_db('SELECT * FROM Users WHERE username="{}";'.format(username), one=True)
         query_db('INSERT INTO Comments (p_id, u_id, comment, creation_time) VALUES({}, {}, "{}", \'{}\');'.format(p_id, user['id'], form.comment.data, datetime.now()))
-
-    post = query_db('SELECT * FROM Posts WHERE id={};'.format(p_id), one=True)
-    all_comments = query_db('SELECT DISTINCT * FROM Comments AS c JOIN Users AS u ON c.u_id=u.id WHERE c.p_id={} ORDER BY c.creation_time DESC;'.format(p_id))
+    """
+    post = Posts.query.filter_by(id = p_id)
+    #post = query_db('SELECT * FROM Posts WHERE id={};'.format(p_id), one=True)
+    #all_comments = query_db('SELECT DISTINCT * FROM Comments AS c JOIN Users AS u ON c.u_id=u.id WHERE c.p_id={} ORDER BY c.creation_time DESC;'.format(p_id))
+    
     return render_template('comments.html', title='Comments', username=username, form=form, post=post, comments=all_comments)
 
 
@@ -91,6 +97,7 @@ def comments(username, p_id):
 @app.route('/friends/<username>', methods=['GET', 'POST'])
 def friends(username):
     form = FriendsForm()
+    """
     user = query_db('SELECT * FROM Users WHERE username="{}";'.format(username), one=True)
     if form.is_submitted():
         friend = query_db('SELECT * FROM Users WHERE username="{}";'.format(form.username.data), one=True)
@@ -100,22 +107,32 @@ def friends(username):
             query_db('INSERT INTO Friends (u_id, f_id) VALUES({}, {});'.format(user['id'], friend['id']))
     
     all_friends = query_db('SELECT * FROM Friends AS f JOIN Users as u ON f.f_id=u.id WHERE f.u_id={} AND f.f_id!={} ;'.format(user['id'], user['id']))
+    """
     return render_template('friends.html', title='Friends', username=username, friends=all_friends, form=form)
 
 
 # see and edit detailed profile information of a user
 @app.route('/profile/<username>', methods=['GET', 'POST'])
+@login_required
 def profile(username):
     form = ProfileForm()
-    if form.is_submitted():
-        query_db('UPDATE Users SET education="{}", employment="{}", music="{}", movie="{}", nationality="{}", birthday=\'{}\' WHERE username="{}" ;'.format(
-            form.education.data, form.employment.data, form.music.data, form.movie.data, form.nationality.data, form.birthday.data, username
-        ))
-        return redirect(url_for('profile', username=username))
-    
-    user = query_db('SELECT * FROM Users WHERE username="{}";'.format(username), one=True)
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=username).first()
+        try:
+            user.education = form.education.data
+            user.employment = form.employment.data
+            user.music = form.music.data
+            user.movie = form.movie.data
+            user.nationality = form.nationality.data
+            user.birthday = form.birthday.data
+            db.session.commit()
+        except:
+            db.session.rollback()
+            flash('An error occured while updating your profile. Please try again.')
+            return redirect(url_for('profile', title='profile', username=username, user=user, form=form))
+    user = User.query.filter_by(username=username).first()
     return render_template('profile.html', title='profile', username=username, user=user, form=form)
-"""
+
 
 @login_required
 @app.route('/test', methods=['GET', 'POST'])
@@ -134,7 +151,7 @@ def logout():
 @app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for('profile_test'))#Dette må endre til Profile.
+        return redirect(url_for('profile'))
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -147,7 +164,7 @@ def reset_password_request():
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     if current_user.is_authenticated:
-        return redirect(url_for('profile_test'))#Denne må endre til profile.
+        return redirect(url_for('profile'))
     user = User.verify_reset_password_token(token)
     if not user:
         return redirect(url_for('index'))
@@ -168,7 +185,7 @@ def reset_password(token):
                 db.session.rollback()
                 flash('Something went wrong. Please try again.')
                 return redirect(url_for('index'))
-        #If so, ordery passwords by creation_time and delete the oldest entry. Then add the new one.
+        #If so, order passwords by creation_time and delete the oldest entry. Then add the new one.
         else:
             try:
                 password = db.session.execute('SELECT P.* FROM User INNER JOIN Password AS P WHERE P.u_id=:val GROUP BY P.creation_time', {'val': user.id}).first()
@@ -183,4 +200,4 @@ def reset_password(token):
                 db.session.rollback()
                 flash('Something went wrong. Please try again.')
                 return redirect(url_for('index'))
-    return render_template('reset_password.html', form=form, user=user)        
+    return render_template('reset_password.html', title='Reset Password', form=form, user=user)        

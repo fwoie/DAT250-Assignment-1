@@ -60,11 +60,17 @@ class FriendsForm(FlaskForm):
 class ProfileForm(FlaskForm):
     education = StringField('Education', render_kw={'placeholder': 'Highest education'})
     employment = StringField('Employment', render_kw={'placeholder': 'Current employment'})
+    email = StringField('Email', render_kw={'placeholder': 'E-mail address'})
     music = StringField('Favorite song', render_kw={'placeholder': 'Favorite song'})
     movie = StringField('Favorite movie', render_kw={'placeholder': 'Favorite movie'})
     nationality = StringField('Nationality', render_kw={'placeholder': 'Your nationality'})
     birthday = DateField('Birthday')
     submit = SubmitField('Update Profile')
+    
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError('Please use a different email address.')
     
 class ResetPasswordRequestForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
