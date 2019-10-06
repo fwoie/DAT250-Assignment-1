@@ -53,3 +53,13 @@ class Posts(db.Model):
     def __repr__(self):
         return '<Post {}>'.format(self.content)
 
+class Password(db.Model):
+    u_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key = True)
+    password_hash = db.Column(db.String(128), primary_key = True)
+    creation_time = db.Column(db.DateTime, index = True, default = datetime.utcnow)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return '<Password for user #{}>'.format(self.u_id)

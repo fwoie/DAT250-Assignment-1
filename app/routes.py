@@ -1,6 +1,6 @@
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, g
 from app import app, db, login
-from models import User
+from models import User, Password
 from flask_login import login_user, login_required, current_user, logout_user
 from app.forms import IndexForm, PostForm, FriendsForm, ProfileForm, CommentsForm, ResetPasswordRequestForm, ResetPasswordForm, LoginForm, RegisterForm
 from app.email import send_password_reset_email
@@ -28,21 +28,27 @@ def index():
         flash('Sorry, wrong combination of username and password!')
 
     elif form.register.validate_on_submit():
-    #elif form.register.is_submitted() and form.register.submit.data:
-        print("register form validated")
-        #first_name, last_name = form.register.first_name.data, form.register.last_name.data
-        #username = form.register.username.data
-        #  query_db('INSERT INTO Users (username, first_name, last_name, password, is_active) VALUES("{}", "{}", "{}", "{}",0);'.format(
-        #    username, firstname, lastname, password))
-        user = User.query.filter_by(username=form.register.username.data).first()
 
+        user = User.query.filter_by(username=form.register.username.data).first()
         if not user:
             new_user = User(username=form.register.username.data, email=form.register.email.data, first_name=form.register.first_name.data, last_name=form.register.last_name.data)
             new_user.set_password(form.register.password.data)
-            db.session.add(new_user)
-            db.session.commit()
-            flash("Registration successful!")
-            return redirect(url_for('index'))
+            try:
+                try:
+                    db.session.add(new_user)
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+                    flash("Registration unsuccessful, please try again.")
+                    return redirect(url_for("index"))
+                new_password = Password(u_id=new_user.id, password_hash=new_user.password_hash)
+                db.session.add(new_password)
+                db.session.commit()
+                flash("Registration successful!")
+                return redirect(url_for('index'))
+            except:
+                flash("Registration unsuccessful, please try again.")
+                return redirect(url_for("index"))
         else:
             flash('Username taken!')
             return redirect(url_for('index'))
@@ -119,23 +125,18 @@ def profile_test():
 
 
 @login_required
-@app.route('/index', methods=['GET', 'POST'])
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
-    form = IndexForm()
-    print("heisann")
     logout_user()
     flash("You are now logged out")
-    return render_template('index.html', title='Welcome', form=form)
+    return redirect(url_for('index'))
 
 @app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
-    print("linje133")
-    #if current_user.is_authenticated:
-    #    return redirect(url_for('profile_test'))#Dette må endre til Profile.
+    if current_user.is_authenticated:
+        return redirect(url_for('profile_test'))#Dette må endre til Profile.
     form = ResetPasswordRequestForm()
-    print("linje137")
     if form.validate_on_submit():
-        print("linje139")
         user = User.query.filter_by(email=form.email.data).first()
         if user:
             send_password_reset_email(user)
@@ -145,15 +146,41 @@ def reset_password_request():
                            
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
-    #if current_user.is_authenticated:
-    #    return redirect(url_for('profile_test'))#Denne må endre til profile.
+    if current_user.is_authenticated:
+        return redirect(url_for('profile_test'))#Denne må endre til profile.
     user = User.verify_reset_password_token(token)
     if not user:
         return redirect(url_for('index'))
+    g.user_id = user.id
     form = ResetPasswordForm()
     if form.validate_on_submit():
-        user.set_password(form.password.data)
-        db.session.commit()
-        flash('Your password has been reset.')
-        return redirect(url_for('index'))
-    return render_template('reset_password.html', form=form)
+        #Check if the password has been used before using a custom validator in forms.py
+        #Check if the maximum old password limit (5) has been reached.                  
+        if db.session.execute('SELECT COUNT(*) FROM User INNER JOIN Password').first()[0] < 5:
+            try:
+                user.set_password(form.password.data)
+                new_password = Password(u_id=user.id, password_hash=user.password_hash)
+                db.session.add(new_password)
+                db.session.commit()
+                flash('Your password has been reset.')
+                return redirect(url_for('index'))
+            except:
+                db.session.rollback()
+                flash('Something went wrong. Please try again.')
+                return redirect(url_for('index'))
+        #If so, ordery passwords by creation_time and delete the oldest entry. Then add the new one.
+        else:
+            try:
+                password = db.session.execute('SELECT P.* FROM User INNER JOIN Password AS P WHERE P.u_id=:val GROUP BY P.creation_time', {'val': user.id}).first()
+                db.session.delete(Password.query.filter_by(u_id=password['u_id'], creation_time=password['creation_time']).first())
+                user.set_password(form.password.data)
+                new_password = Password(u_id=user.id, password_hash=user.password_hash)
+                db.session.add(new_password)
+                db.session.commit()
+                flash('Your password has been reset.')
+                return redirect(url_for('index'))
+            except:
+                db.session.rollback()
+                flash('Something went wrong. Please try again.')
+                return redirect(url_for('index'))
+    return render_template('reset_password.html', form=form, user=user)        

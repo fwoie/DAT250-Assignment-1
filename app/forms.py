@@ -1,7 +1,8 @@
+from flask import g
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, FormField, TextAreaField, FileField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
-from models import User
+from models import User, Password
 from wtforms.fields.html5 import DateField
 
 # defines all forms in the application, these will be instantiated by the template,
@@ -73,4 +74,11 @@ class ResetPasswordForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     password2 = PasswordField(
         'Repeat Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Request Password Reset')
+    submit = SubmitField('Request Password Reset')  
+
+    def validate_password(self, password):
+        user_id = g.user_id
+        passwords = Password.query.filter_by(u_id=user_id).all()
+        for p in passwords:
+            if p.check_password(password.data):
+                raise ValidationError('Password has been used before.') 
