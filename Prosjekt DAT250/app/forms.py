@@ -71,6 +71,11 @@ def checkDate(form, field):
     if field.data > date.today():
         raise ValidationError('We have not come to this date')
 
+def isEmpty(form, field):
+    data = field.data
+    if data == '':
+        raise ValidationError('Kan ikke commentere et tomt komentar!')
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', [validators.Length(min=5), validators.Regexp('^\w+$', message="Username must contain only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
@@ -98,7 +103,7 @@ class PostForm(FlaskForm):
     #[FileAllowed(['rgb', 'gif', 'pbm', 'pgm', 'ppm', 'tiff', 'rast', 'xbm', 'jpeg', 'bmp', 'png'], "Images only!")]
 
 class CommentsForm(FlaskForm):
-    comment = TextAreaField('New Comment', render_kw={'placeholder': 'What do you have to say?'})
+    comment = TextAreaField('New Comment', [isEmpty], render_kw={'placeholder': 'What do you have to say?'})
     submit = SubmitField('Comment')
 
 class FriendsForm(FlaskForm):
