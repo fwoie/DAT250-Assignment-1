@@ -1,0 +1,10 @@
+Dear {{ user.username }},
+
+Please click on the link below to enable your account:
+
+{{ url_for('enable_account', token=token, _external=True) }}
+
+If you have not requested a password reset simply ignore this message.
+
+Sincerely,
+Social Insecurity.

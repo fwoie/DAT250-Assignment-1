@@ -19,6 +19,9 @@ class User(UserMixin, db.Model):
     movie = db.Column(db.String(30))
     nationality = db.Column(db.String(30))
     birthday = db.Column(db.Date)
+    last_login_try = db.Column(db.DateTime, default = datetime.utcnow)
+    failed_logins = db.Column(db.Integer, default = 0)
+    is_blocked = db.Column(db.Boolean, default = True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -30,6 +33,11 @@ class User(UserMixin, db.Model):
         return jwt.encode(
             {'reset_password': self.id, 'exp': time() + expires_in},
             app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
+            
+    def get_account_enable_token(self, expires_in = 600):
+        return jwt.encode(
+            {'enable_account': self.id, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
     
     @staticmethod
     def verify_reset_password_token(token):
@@ -39,9 +47,19 @@ class User(UserMixin, db.Model):
         except:
             return
         return User.query.get(id)
+        
+    @staticmethod
+    def verify_enable_account_token(token):
+        try:
+            id = jwt.decode(token, app.config['SECRET_KEY'],
+                            algorithms=['HS256'])['enable_account']
+        except:
+            return
+        return User.query.get(id)
     
     def __repr__(self):
         return '<User {}>'.format(self.username)
+    
     
 class Posts(db.Model):
     id = db.Column(db.Integer, primary_key = True, autoincrement = True)
@@ -63,3 +81,20 @@ class Password(db.Model):
 
     def __repr__(self):
         return '<Password for user #{}>'.format(self.u_id)
+
+class Friends(db.Model):
+    u_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key = True)
+    f_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key = True)
+
+    def __repr__(self):
+        return '<User #{} is friends with user #{}>'.format(self.u_id, self.f_id)
+
+class Comments(db.Model):
+    id = db.Column(db.Integer, primary_key = True, autoincrement = True)
+    p_id = db.Column(db.Integer, db.ForeignKey("posts.id"))
+    u_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    comment = db.Column(db.String())
+    creation_time = db.Column(db.DateTime, default = datetime.utcnow)
+    
+    def __repr__(self):
+        return '<Comment body: {}>'.format(self.comment)

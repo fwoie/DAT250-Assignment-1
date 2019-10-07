@@ -4,4 +4,4 @@ from models import User, Posts, Password
 
 @app.shell_context_processor
 def make_shell_contect():
-    return{'db': db, 'User': User, 'Posts': Posts, 'Password': Password}
+    return{'db': db, 'User': User, 'Posts': Posts, 'Password': Password, 'Comments': Comments, 'Friends': Friends}
