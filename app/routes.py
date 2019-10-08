@@ -19,7 +19,6 @@ def index():
     loginForm = LoginForm()
     registerForm = RegisterForm()
     if form.login.is_submitted() and form.login.submit.data:
-        # user = query_db('SELECT * FROM Users WHERE username="{}";'.format(form.login.username.data), one=True)
         user = User.query.filter_by(username=form.login.username.data).first()
         if user and user.is_blocked:
             flash('Your account is blocked/inactive. Please click on link below to reactivate it.')
@@ -112,11 +111,13 @@ def posts(p_id):
         return redirect(url_for('index'))
     form = CommentsForm()
 
-    e = db.session.execute('SELECT u_id FROM Friends WHERE u_id = :u_id AND f_id = (SELECT u_id FROM Posts WHERE id = :p_id)',
-                           {'u_id': current_user.id, 'p_id': p_id})
+    e = db.session.execute(
+        'SELECT f_id FROM Friends WHERE u_id = :u_id AND f_id = (SELECT u_id FROM Posts WHERE id = :p_id)',
+        {'u_id': current_user.id, 'p_id': p_id})
+    friend_id = [row['f_id'] for row in e]
+    post = Posts.query.filter_by(id=p_id).first()
 
-    post = Posts.query.filter_by(id = p_id).first()
-    if not e == current_user.id and not current_user.id == post.u_id:
+    if len(friend_id) == 0 and not current_user.id == post.u_id:
         return redirect(url_for('stream', username=current_user.username))
 
     if form.validate_on_submit():
@@ -126,12 +127,12 @@ def posts(p_id):
             db.session.commit()
         except:
             db.session.rollback()
-        #query_db('INSERT INTO Comments (p_id, u_id, comment, creation_time) VALUES({}, {}, "{}", \'{}\');'.format(p_id, user['id'], form.comment.data, datetime.now()))
     all_comments = db.session.execute('SELECT DISTINCT * FROM Comments AS c JOIN User AS u ON c.u_id=u.id WHERE c.p_id=:val ORDER BY c.creation_time DESC;', {'val': p_id})
-    #post = query_db('SELECT * FROM Posts WHERE id={};'.format(p_id), one=True)
-    #all_comments = query_db('SELECT DISTINCT * FROM Comments AS c JOIN Users AS u ON c.u_id=u.id WHERE c.p_id={} ORDER BY c.creation_time DESC;'.format(p_id))
-    
-    return render_template('comments.html', title='Comments', username=current_user.username, form=form, post=post, comments=all_comments)
+    if len(friend_id) == 0:
+        poster_name = current_user.username
+    else:
+        poster_name = User.query.get(friend_id[0]).username
+    return render_template('comments.html', title='Comments', username=current_user.username, form=form, post=post, comments=all_comments, poster_name=poster_name)
 
 
 # page for seeing and adding friends
@@ -144,10 +145,8 @@ def friends(username):
         return redirect(url_for('friends', title = 'Friends', username = current_user.username))
     form = FriendsForm()
     user = User.query.filter_by(username = username).first()
-    #query_db('SELECT * FROM Users WHERE username="{}";'.format(username), one=True)
     if form.validate_on_submit():
         friend = User.query.filter_by(username = form.username.data).first()
-        #friend = query_db('SELECT * FROM Users WHERE username="{}";'.format(form.username.data), one=True)
         print(friend)
         if friend is None:
             flash('User does not exist')
@@ -160,10 +159,8 @@ def friends(username):
             except:
                 db.session.rollback()
                 flash('Something went wrong, please try again.')
-            #query_db('INSERT INTO Friends (u_id, f_id) VALUES({}, {});'.format(user['id'], friend['id']))
-    
+
     all_friends = db.session.execute('SELECT * FROM Friends AS f JOIN User as u ON f.f_id=u.id WHERE f.u_id=:val AND f.f_id!=:val2 ;', {'val': user.id, 'val2': user.id})
-    #all_friends = query_db('SELECT * FROM Friends AS f JOIN Users as u ON f.f_id=u.id WHERE f.u_id={} AND f.f_id!={} ;'.format(user['id'], user['id']))
     return render_template('friends.html', title='Friends', username=username, friends=all_friends, form=form)
 
 
