@@ -22,3 +22,13 @@ def send_password_reset_email(user):
                                          user=user, token=token),
                html_body=render_template('email/reset_password.html',
                                          user=user, token=token))
+
+def send_enable_account_email(user):
+    token = user.get_account_enable_token()
+    send_email('[Social Insecurity] Enable your account',
+               sender=app.config['ADMINS'][0],
+               recipients=[user.email],
+               text_body=render_template('email/enable_account.txt',
+                                         user=user, token=token),
+               html_body=render_template('email/enable_account.html',
+                                         user=user, token=token))

@@ -23,6 +23,10 @@
                         {{ wtf.form_field(form.login.submit, class="btn btn-primary") }}
                     </form>
                 </div>
+				<div class="card-header">
+                    (Re)Enable account?
+					<a href = "{{ url_for('enable_account_request') }}">Click Here</a>
+                </div>
             </div>
         </div>
         <div class="col-sm-12 col-lg-6">
