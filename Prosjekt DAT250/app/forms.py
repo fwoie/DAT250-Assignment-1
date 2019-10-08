@@ -2,7 +2,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, FormField, TextAreaField, FileField, validators, ValidationError
 from wtforms.fields.html5 import DateField
 import re
-import imghdr
 from app import app, query_db
 from datetime import date
 
@@ -30,6 +29,7 @@ def checkNoNumber(form, field):
 
 def checkNoSpecialCharacter(form, field):
     word = field.data
+    word = word.replace(" ", "")
     if not re.match("^[a-zA-Z0-9_]*$", word):
         raise ValidationError('A name does not contain a special character')
 
@@ -56,8 +56,16 @@ def userEx(form, field):
     if user != None:
         raise ValidationError('This username is in use, please choose another one')
 
+def checkSpace(form, field):
+    field = field.data
+    for element in field:
+        if element == " ":
+            raise ValidationError('Password cannot contain spaces')
+
+
 def isValidProfil(form, field):
     data = field.data
+    data = data.replace(" ", "")
     if data == '':
         return
     if not re.match("^[a-zA-Z0-9_]*$", data):
@@ -74,21 +82,21 @@ def checkDate(form, field):
 def isEmpty(form, field):
     data = field.data
     if data == '':
-        raise ValidationError('Kan ikke commentere et tomt komentar!')
+        raise ValidationError('Cannot comment with a blank comment')
 
 
 class LoginForm(FlaskForm):
-    username = StringField('Username', [validators.Length(min=5), validators.Regexp('^\w+$', message="Username must contain only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
-    password = PasswordField('Password', [validators.Length(min=8), checkUpperCase, checkLowerCase, checkNumber, checkSpecialCharacter], render_kw={'placeholder': 'Password'})
+    username = StringField('Username', [validators.InputRequired(), validators.Length(min=5), validators.Regexp('^\w+$', message="Username must contain only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
+    password = PasswordField('Password', [validators.InputRequired(), validators.Length(min=8), checkUpperCase, checkLowerCase, checkNumber, checkSpecialCharacter, checkSpace], render_kw={'placeholder': 'Password'})
     remember_me = BooleanField('Remember me') # TODO: It would be nice to have this feature implemented, probably by using cookies
     submit = SubmitField('Sign In')
 
 class RegisterForm(FlaskForm):
     first_name = StringField('First Name', [validators.InputRequired(), checkNoNumber, checkNoSpecialCharacter], render_kw={'placeholder': 'First Name'})
     last_name = StringField('Last Name', [validators.InputRequired(), checkNoNumber, checkNoSpecialCharacter], render_kw={'placeholder': 'Last Name'})
-    username = StringField('Username', [validators.Length(min=5), userEx, validators.Regexp('^\w+$', message="Username must contain only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
-    password = PasswordField('Password', [validators.Length(min=8), checkUpperCase, checkLowerCase, checkNumber, checkSpecialCharacter], render_kw={'placeholder': 'Password'})
-    confirm_password = PasswordField('Confirm Password', [validators.EqualTo('password',message="Do not match Password!")],render_kw={'placeholder': 'Confirm Password'})
+    username = StringField('Username', [validators.InputRequired(), validators.Length(min=5), userEx, validators.Regexp('^\w+$', message="Username must contain only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
+    password = PasswordField('Password', [validators.InputRequired(), validators.Length(min=8), checkUpperCase, checkLowerCase, checkNumber, checkSpecialCharacter, checkSpace], render_kw={'placeholder': 'Password'})
+    confirm_password = PasswordField('Confirm Password', [validators.InputRequired(), validators.EqualTo('password',message="Do not match Password!")],render_kw={'placeholder': 'Confirm Password'})
     submit = SubmitField('Sign Up')
 
 class IndexForm(FlaskForm):
@@ -107,7 +115,7 @@ class CommentsForm(FlaskForm):
     submit = SubmitField('Comment')
 
 class FriendsForm(FlaskForm):
-    username = StringField('Friend\'s username', [validators.Regexp('^\w+$', message="A username contains only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
+    username = StringField('Friend\'s username', [validators.Length(min=5, message='A username has at least 5 characters'), validators.Regexp('^\w+$', message="A username contains only letters, numbers and underscores")], render_kw={'placeholder': 'Username'})
     submit = SubmitField('Add Friend')
 
 class ProfileForm(FlaskForm):
