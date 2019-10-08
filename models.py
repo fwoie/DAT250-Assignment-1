@@ -69,7 +69,7 @@ class Posts(db.Model):
     creation_time = db.Column(db.DateTime, index = True, default = datetime.utcnow)
     
     def __repr__(self):
-        return '<Post {}>'.format(self.content)
+        return '<Post #{} by user #{} at {}: {}>'.format(self.id, self.u_id, self.creation_time, self.content)
 
 class Password(db.Model):
     u_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key = True)
@@ -93,8 +93,8 @@ class Comments(db.Model):
     id = db.Column(db.Integer, primary_key = True, autoincrement = True)
     p_id = db.Column(db.Integer, db.ForeignKey("posts.id"))
     u_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-    comment = db.Column(db.String())
+    comment = db.Column(db.String(140))
     creation_time = db.Column(db.DateTime, default = datetime.utcnow)
     
     def __repr__(self):
-        return '<Comment body: {}>'.format(self.comment)
+        return '<User #{}\'s comment #{} regarding post #{} at time {}: {}>'.format(self.u_id, self.id, self.p_id, self.creation_time, self.comment)

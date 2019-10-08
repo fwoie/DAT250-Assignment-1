@@ -130,7 +130,7 @@ class ProfileForm(FlaskForm):
             raise ValidationError('Please use a different email address.')
             
     def validate_birthday(self, birthday):
-        if birthday.data > date.today():
+        if birthday.data is not None and birthday.data > date.today():
             raise ValidationError('This isn\'t back to the future.')
     
 class ResetPasswordRequestForm(FlaskForm):
@@ -138,7 +138,7 @@ class ResetPasswordRequestForm(FlaskForm):
     submit = SubmitField('Request Password Reset')
 
 class ResetPasswordForm(FlaskForm):
-    password = PasswordField('Password', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8), checkUpperCase, checkLowerCase, checkNumber, checkSpecialCharacter])
     password2 = PasswordField(
         'Repeat Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Request Password Reset')  

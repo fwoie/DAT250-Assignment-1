@@ -1,8 +1,8 @@
-"""All tables up and running.
+"""Tables for User, Password, Comments, Friends and Posts
 
-Revision ID: b0015e9f80eb
+Revision ID: 3d6c688278ae
 Revises: 
-Create Date: 2019-10-08 13:59:32.126033
+Create Date: 2019-10-08 15:19:44.799296
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b0015e9f80eb'
+revision = '3d6c688278ae'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -67,7 +67,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('p_id', sa.Integer(), nullable=True),
     sa.Column('u_id', sa.Integer(), nullable=True),
-    sa.Column('comment', sa.String(), nullable=True),
+    sa.Column('comment', sa.String(length=140), nullable=True),
     sa.Column('creation_time', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['p_id'], ['posts.id'], ),
     sa.ForeignKeyConstraint(['u_id'], ['user.id'], ),

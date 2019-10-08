@@ -106,7 +106,7 @@ def stream(username):
         #         .format(user['id'], form.content.data, form.image.data.filename, datetime.now()))    
 
     posts = db.session.execute('SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id=p.id) AS cc FROM Posts AS p JOIN User AS u ON u.id=p.u_id WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id=:val) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id=:val) OR p.u_id=:val ORDER BY p.creation_time DESC;', {'val': user.id})
-    
+    #posts = query_db('SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id=p.id) AS cc FROM Posts AS p JOIN Users AS u ON u.id=p.u_id WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id={0}) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id={0}) OR p.u_id={0} ORDER BY p.creation_time DESC;'.format(user['id']))
     return render_template('stream.html', title='Stream', username=username, form=form, posts=posts)
 
 
@@ -123,8 +123,11 @@ def comments(username, p_id):
         print('form validated')
         user = User.query.filter_by(username = username).first()
         try:
+            print(p_id)
+            print(user.id)
+            print(form.comment.data)
             new_comment = Comments(p_id = p_id, u_id = user.id, comment = form.comment.data)
-            print(comment)
+            print(new_comment.id)
             db.session.add(new_comment)
             db.session.commit()
             print('success')
