@@ -85,6 +85,8 @@ def index():
 @app.route('/stream/<username>', methods=['GET', 'POST'])
 @login_required
 def stream(username):
+    if not current_user.is_authenticated:
+        return redirect(url_for('index'))
     form = PostForm()
     if current_user.username != username:
         return redirect(url_for('stream', title='Stream', username = current_user.username))
@@ -112,6 +114,8 @@ def stream(username):
 @app.route('/comments/<username>/<int:p_id>', methods=['GET', 'POST'])
 @login_required
 def comments(username, p_id):
+    if not current_user.is_authenticated:
+        return redirect(url_for('index'))
     form = CommentsForm()
     if current_user.username != username:
         return redirect(url_for('comments', title='Comments', username = current_user.username))
@@ -140,6 +144,8 @@ def comments(username, p_id):
 @app.route('/friends/<username>', methods=['GET', 'POST'])
 @login_required
 def friends(username):
+    if not current_user.is_authenticated:
+        return redirect(url_for('index'))
     if current_user.username != username:
         return redirect(url_for('friends', title = 'Friends', username = current_user.username))
     form = FriendsForm()

@@ -18,7 +18,7 @@ mail = Mail(app)
 # TODO: Handle login management better, maybe with flask_login?
 login = LoginManager(app)
 login.init_app(app)
-login.login_view = 'login'
+login.login_view = 'index'
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
