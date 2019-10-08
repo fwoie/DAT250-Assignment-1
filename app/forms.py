@@ -85,6 +85,7 @@ def validateImage(form, field):
     if x is not True:
         raise ValidationError("Filetype not allowed")
 
+
 # defines all forms in the application, these will be instantiated by the template,
 # and the routes.py will read the values of the fields
 # TODO: Add validation, maybe use wtforms.validators??
@@ -126,7 +127,7 @@ class IndexForm(FlaskForm):
 
 
 class PostForm(FlaskForm):
-    content = TextAreaField('New Post', render_kw={'placeholder': 'What are you thinking about?'})
+    content = TextAreaField('New Post', validators=[DataRequired(), Length(max=240)], render_kw={'placeholder': 'What are you thinking about?'})
     image = FileField('Image', validators=[validateImage])
     submit = SubmitField('Post')
 

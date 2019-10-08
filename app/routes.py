@@ -115,7 +115,8 @@ def posts(p_id):
     e = db.session.execute('SELECT u_id FROM Friends WHERE u_id = :u_id AND f_id = (SELECT u_id FROM Posts WHERE id = :p_id)',
                            {'u_id': current_user.id, 'p_id': p_id})
 
-    if not e == current_user.id:
+    post = Posts.query.filter_by(id = p_id).first()
+    if not e == current_user.id and not current_user.id == post.u_id:
         return redirect(url_for('stream', username=current_user.username))
 
     if form.validate_on_submit():
@@ -126,7 +127,6 @@ def posts(p_id):
         except:
             db.session.rollback()
         #query_db('INSERT INTO Comments (p_id, u_id, comment, creation_time) VALUES({}, {}, "{}", \'{}\');'.format(p_id, user['id'], form.comment.data, datetime.now()))
-    post = Posts.query.filter_by(id = p_id).first()
     all_comments = db.session.execute('SELECT DISTINCT * FROM Comments AS c JOIN User AS u ON c.u_id=u.id WHERE c.p_id=:val ORDER BY c.creation_time DESC;', {'val': p_id})
     #post = query_db('SELECT * FROM Posts WHERE id={};'.format(p_id), one=True)
     #all_comments = query_db('SELECT DISTINCT * FROM Comments AS c JOIN Users AS u ON c.u_id=u.id WHERE c.p_id={} ORDER BY c.creation_time DESC;'.format(p_id))
@@ -190,12 +190,14 @@ def profile(username):
             if form.birthday.data is not None:
                 user.birthday = form.birthday.data
             db.session.commit()
+            return render_template('profile.html', title='profile', username=current_user.username, user=current_user, form=form)
         except:
             db.session.rollback()
 
             flash('An error occured while updating your profile. Please try again.')
             return redirect(url_for('profile', title='profile', username=username, user=user, form=form))
-    user = User.query.filter_by(username=username).first()
+    elif form.is_submitted():
+        flash('An error occured while updating your profile. Please try again.')
     return render_template('profile.html', title='profile', username=username, user=user, form=form)
 
 
