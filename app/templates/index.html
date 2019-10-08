@@ -23,6 +23,10 @@
                         {{ wtf.form_field(form.login.submit, class="btn btn-primary") }}
                     </form>
                 </div>
+				<div class="card-header">
+                    (Re)Enable account?
+					<a href = "{{ url_for('enable_account_request') }}">Click Here</a>
+                </div>
             </div>
         </div>
         <div class="col-sm-12 col-lg-6">
@@ -33,13 +37,19 @@
                 <div class="card-body">
                     <h5 class="card-title">Create a new profile</h5>
                     <form action="", method="POST" novalidate>
+					{{ form.register.hidden_tag() }}
                         {{ wtf.form_field(form.register.first_name) }}
                         {{ wtf.form_field(form.register.last_name) }}
                         {{ wtf.form_field(form.register.username) }}
+						{{ wtf.form_field(form.register.email) }}
                         {{ wtf.form_field(form.register.password) }}
-                        {{ wtf.form_field(form.register.confirm_password) }}
-                        {{ wtf.form_field(form.register.submit, class="btn btn-primary") }}
+						{{ wtf.form_field(form.register.confirm_password) }}
+                        {{ wtf.form_field(form.register.submit, class="btn btn-primary") }}	
                     </form>
+                </div>
+				<div class="card-header">
+                    Forgot Your Password?
+					<a href = "{{ url_for('reset_password_request') }}">Click to Reset it</a>
                 </div>
             </div>
         </div>
