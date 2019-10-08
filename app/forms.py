@@ -148,7 +148,7 @@ class ProfileForm(FlaskForm):
     music = StringField('Favorite song', validators=[isValidProfil], render_kw={'placeholder': 'Favorite song'})
     movie = StringField('Favorite movie', validators=[isValidProfil], render_kw={'placeholder': 'Favorite movie'})
     nationality = StringField('Nationality', validators=[isValidProfil], render_kw={'placeholder': 'Your nationality'})
-    birthday = DateField('Birthday')
+    birthday = DateField('Birthday: (format: dd.mm.yyyy)', format='%d.%m.%Y')
     submit = SubmitField('Update Profile')
     
     def validate_email(self, email):
