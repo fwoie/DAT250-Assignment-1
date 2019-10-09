@@ -142,7 +142,7 @@ def friends(username):
     if not current_user.is_authenticated:
         return redirect(url_for('index'))
     if current_user.username != username:
-        return redirect(url_for('friends', title = 'Friends', username = current_user.username))
+        return redirect(url_for('friends', username = current_user.username))
     form = FriendsForm()
     user = User.query.filter_by(username = username).first()
     if form.validate_on_submit():
@@ -192,9 +192,11 @@ def profile(username):
             db.session.rollback()
 
             flash('An error occured while updating your profile. Please try again.')
-            return redirect(url_for('profile', title='profile', username=username, user=user, form=form))
+            return redirect(url_for('profile', username=username, user=user, form=form))
     elif form.is_submitted():
         flash('An error occured while updating your profile. Please try again.')
+        return render_template('profile.html', username=username, user=user, form=form)
+
     return render_template('profile.html', title='profile', username=username, user=user, form=form)
 
 
